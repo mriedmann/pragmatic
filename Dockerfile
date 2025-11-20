@@ -1,4 +1,4 @@
-FROM alpine:3.19
+FROM alpine:3.22
 
 # Install bash 5.x (Alpine's bash package provides bash 5, which is > 4.0)
 # Also install other required dependencies
