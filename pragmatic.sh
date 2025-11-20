@@ -6,7 +6,7 @@ set -euo pipefail
 # Version Information
 ################################################################################
 
-VERSION="v0.1.1" ##! echo "VERSION=\"$RELEASE_VERSION\""; echo "$1" > /dev/null
+VERSION="v0.2.0" ##! echo "VERSION=\"$RELEASE_VERSION\""; echo "$1" > /dev/null
 
 ################################################################################
 # Built-in Functions
