@@ -97,11 +97,17 @@ Run pragmatic using the official Docker image:
 docker pull ghcr.io/<username>/pragmatic:latest
 
 # Run on local files (mount current directory)
-docker run --rm -v "$(pwd):/workspace" ghcr.io/<username>/pragmatic:latest config.yml
+# Use --user to avoid permission issues with modified files
+docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd):/workspace" ghcr.io/<username>/pragmatic:latest config.yml
 
-# Use in CI/CD
+# Use in CI/CD (check mode doesn't modify files, so --user is optional)
 docker run --rm -v "$(pwd):/workspace" ghcr.io/<username>/pragmatic:latest --check templates/*.yml
+
+# Read-only mount for safety when processing untrusted files
+docker run --rm -v "$(pwd):/workspace:ro" ghcr.io/<username>/pragmatic:latest --check file.yml
 ```
+
+**Note:** The `--user "$(id -u):$(id -g)"` flag runs the container as your user, preventing permission issues when pragmatic modifies files. Without this flag, files will be owned by root.
 
 ### From Source
 
@@ -476,7 +482,7 @@ jobs:
 
       - name: Update configuration files
         run: |
-          docker run --rm -v "$PWD:/workspace" \
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/workspace" \
             ghcr.io/<username>/pragmatic:latest \
             config/*.yml
 
@@ -507,7 +513,7 @@ update-configs:
 stage('Update Configs') {
     steps {
         sh '''
-            docker run --rm -v "$PWD:/workspace" \
+            docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/workspace" \
                 ghcr.io/<username>/pragmatic:latest \
                 --check config/*.yml
         '''
