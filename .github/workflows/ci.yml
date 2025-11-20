@@ -37,6 +37,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Make script executable
+        run: chmod +x pragmatic.sh
+
       - name: Setup BATS
         uses: mig4/setup-bats@v1
         with:
@@ -76,8 +79,8 @@ jobs:
           image: registry.io/app:old ##! update_image_tag v1.0.0
           EOF
 
-          # Run pragmatic in Docker
-          docker run --rm -v "$(pwd)/test-workspace:/workspace" pragmatic:test test.yml
+          # Run pragmatic in Docker with current user to avoid permission issues
+          docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)/test-workspace:/workspace" pragmatic:test test.yml
 
           # Verify the change
           grep -q "registry.io/app:v1.0.0" test-workspace/test.yml
@@ -90,9 +93,9 @@ jobs:
           image: registry.io/app:old ##! update_image_tag v2.0.0
           EOF
 
-          # Run in check mode (should exit with code 1)
+          # Run in check mode (should exit with code 1) with current user
           set +e
-          docker run --rm -v "$(pwd)/test-workspace2:/workspace" pragmatic:test --check test.yml
+          docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)/test-workspace2:/workspace" pragmatic:test --check test.yml
           exit_code=$?
           set -e
 
