@@ -329,6 +329,61 @@ bats pragmatic.bats
 bats pragmatic.bats -f "basic marker replacement"
 ```
 
+## Continuous Integration
+
+The project includes automated CI workflows that run on every commit to `main`/`master` and on every pull request.
+
+### CI Pipeline
+
+The CI workflow (`.github/workflows/ci.yml`) runs three parallel jobs:
+
+1. **Lint**
+   - **Shellcheck**: Validates bash script quality and catches common errors
+   - **Hadolint**: Validates Dockerfile best practices
+
+2. **Test**
+   - Runs the complete BATS test suite (17 tests)
+   - Validates all functionality including:
+     - Built-in functions
+     - Variable expansion
+     - Check mode
+     - Error handling
+     - Multiple file processing
+
+3. **Docker Build & Test**
+   - Builds the Docker image
+   - Tests help output
+   - Tests basic transformation functionality
+   - Tests check mode behavior
+   - Validates file modifications
+
+### Running CI Checks Locally
+
+Before pushing changes, you can run the same checks locally:
+
+```bash
+# Run shellcheck
+shellcheck pragmatic.sh
+
+# Run hadolint (requires Docker)
+docker run --rm -i hadolint/hadolint < Dockerfile
+
+# Run BATS tests
+bats pragmatic.bats
+
+# Build and test Docker image
+docker build -t pragmatic:test .
+docker run --rm pragmatic:test --help
+```
+
+### Code Quality Standards
+
+- All bash scripts must pass shellcheck with no warnings
+- Dockerfile must pass hadolint validation
+- All BATS tests must pass
+- Docker image must build successfully and pass functional tests
+- New features must include corresponding BATS tests
+
 ## Advanced Usage
 
 ### Custom Functions
