@@ -337,7 +337,7 @@ bats pragmatic.bats -f "basic marker replacement"
 
 ## Continuous Integration
 
-The project includes automated CI workflows that run on every commit to `main`/`master` and on every pull request.
+The project includes automated CI workflows that run on every commit to `main` and on every pull request.
 
 ### CI Pipeline
 
