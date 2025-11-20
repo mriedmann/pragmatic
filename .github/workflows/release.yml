@@ -18,6 +18,24 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install git-cliff
+        run: |
+          wget -q https://github.com/orhun/git-cliff/releases/download/v2.6.1/git-cliff-2.6.1-x86_64-unknown-linux-musl.tar.gz
+          tar -xzf git-cliff-2.6.1-x86_64-unknown-linux-musl.tar.gz
+          sudo mv git-cliff-2.6.1/git-cliff /usr/local/bin/
+          chmod +x /usr/local/bin/git-cliff
+
+      - name: Make scripts executable
+        run: chmod +x pragmatic.sh prepare-release.sh
+
+      - name: Validate version consistency
+        run: |
+          echo "Validating that VERSION in pragmatic.sh matches git-cliff expectations..."
+          ./prepare-release.sh --check
+          echo "✓ Version validation passed!"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
