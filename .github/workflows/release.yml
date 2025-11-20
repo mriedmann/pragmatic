@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create release tarball
+        run: |
+          VERSION="${{ github.ref_name }}"
+          tar -czf pragmatic-${VERSION}.tar.gz pragmatic.sh README.md LICENSE
+
+      - name: Upload release tarball
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./pragmatic-${{ github.ref_name }}.tar.gz
+          asset_name: pragmatic-${{ github.ref_name }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Create installation script
+        run: |
+          cat > install.sh << 'EOF'
+          #!/bin/bash
+          set -e
+
+          VERSION="${1:-latest}"
+          INSTALL_DIR="${2:-/usr/local/bin}"
+
+          echo "Installing pragmatic ${VERSION} to ${INSTALL_DIR}"
+
+          # Download the script
+          if [ "$VERSION" = "latest" ]; then
+            URL="https://raw.githubusercontent.com/${{ github.repository }}/main/pragmatic.sh"
+          else
+            URL="https://raw.githubusercontent.com/${{ github.repository }}/${VERSION}/pragmatic.sh"
+          fi
+
+          curl -fsSL "$URL" -o "${INSTALL_DIR}/pragmatic"
+          chmod +x "${INSTALL_DIR}/pragmatic"
+
+          echo "Pragmatic installed successfully!"
+          echo "Run 'pragmatic --help' to get started"
+          EOF
+          chmod +x install.sh
+
+      - name: Upload install script
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./install.sh
+          asset_name: install.sh
+          asset_content_type: application/x-sh
