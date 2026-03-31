@@ -58,6 +58,9 @@ else
     # Use pragmatic to update itself
     ./pragmatic.sh --stop-after 1 pragmatic.sh
 
+    # Setting executable again after a rewrite
+    chmod +x ./pragmatic.sh
+
     # Verify the update worked
     NEW_VERSION=$(./pragmatic.sh --version | sed 's/pragmatic version //')
 
