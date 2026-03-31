@@ -3,6 +3,12 @@
 set -euo pipefail
 
 ################################################################################
+# Version Information
+################################################################################
+
+VERSION="v0.2.0" ##! echo "VERSION=\"$RELEASE_VERSION\""; echo "$1" > /dev/null
+
+################################################################################
 # Built-in Functions
 ################################################################################
 
@@ -53,20 +59,35 @@ export -f update_image_tag
 
 # Parse command line options
 check_mode=false
+stop_after=""
 files=()
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        -v|--version)
+            echo "pragmatic version $VERSION"
+            exit 0
+            ;;
         -c|--check)
             check_mode=true
             shift
+            ;;
+        --stop-after)
+            if [[ -z "${2:-}" ]] || [[ ! "${2:-}" =~ ^[0-9]+$ ]]; then
+                echo "ERROR: --stop-after requires a positive number"
+                exit 1
+            fi
+            stop_after="$2"
+            shift 2
             ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS] <file1> [file2] [file3] ..."
             echo ""
             echo "Options:"
-            echo "  -c, --check    Check mode: don't modify files, exit with non-zero if changes would be made"
-            echo "  -h, --help     Show this help message"
+            echo "  -v, --version       Show version information"
+            echo "  -c, --check         Check mode: don't modify files, exit with non-zero if changes would be made"
+            echo "  --stop-after <n>    Stop processing each file after processing n ##! tags"
+            echo "  -h, --help          Show this help message"
             echo ""
             echo "Exit codes:"
             echo "  0 - Success (no changes needed or changes applied successfully)"
@@ -89,6 +110,7 @@ while [[ $# -gt 0 ]]; do
             echo "Usage examples:"
             echo "  $0 ./templates/*.yml"
             echo "  $0 --check ./templates/*.yml"
+            echo "  $0 --stop-after 1 ./pragmatic.sh"
             echo "  $0 ./templates/azure-acr-login.yml"
             exit 0
             ;;
@@ -136,14 +158,31 @@ for yaml_file in "${files[@]}"; do
 
     # Track if file was modified
     modified=false
+    # Track number of processed ##! tags for this file
+    processed_count=0
 
     # Process each line - THIS REPLACES THE ENTIRE FILE LINE BY LINE
     while IFS= read -r line || [ -n "$line" ]; do
+        # Check if we should stop processing (if stop_after is set and we've reached the limit)
+        if [[ -n "$stop_after" ]] && [[ $processed_count -ge $stop_after ]]; then
+            # Print message only once when limit is reached
+            if [[ $processed_count -eq $stop_after ]]; then
+                echo "  Reached limit of $stop_after processed tags, copying remaining lines as-is"
+                processed_count=$((processed_count + 1))  # Increment to avoid printing message again
+            fi
+            # Just copy remaining lines without processing
+            printf '%s\n' "$line" >> "$temp_file"
+            continue
+        fi
+
         # Check if line contains ##! comment marker (double hash!)
         if [[ "$line" =~ ^(.*)##!\ +(.+)$ ]]; then
-            # Extract parts
+            # Extract parts (must be done before any other operations that might clear BASH_REMATCH)
             content_before="${BASH_REMATCH[1]}"
             command="${BASH_REMATCH[2]}"
+
+            # Increment the counter for processed tags
+            processed_count=$((processed_count + 1))
 
             # If no $1 is found in the command, add it at the end
             # This allows markers like "##! update_image_tag $TAG" to work
