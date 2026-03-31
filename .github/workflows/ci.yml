@@ -31,7 +31,7 @@ jobs:
 
       - name: Check version consistency
         id: version_check
-        continue-on-error: true
+        continue-on-error: ${{github.ref != 'refs/heads/main'}}
         run: ./prepare-release.sh --check
       
       - name: Bump verison
