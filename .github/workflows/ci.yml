@@ -34,7 +34,7 @@ jobs:
         run: ./prepare-release.sh --check
       
       - name: Bump verison
-        if: ${{ steps.version_check.conclusion == 'failure' }}
+        if: ${{ steps.version_check.outcome == 'failure' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
